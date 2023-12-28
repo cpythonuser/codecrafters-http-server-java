@@ -23,18 +23,22 @@ public class Main {
             String statusLine = input.readLine(); // read only first (status) line for now
             System.out.println(statusLine);
 
-            try (PrintWriter output = new PrintWriter(clientSocket.getOutputStream())) {
-                String[] statusLineEntries = statusLine.split("\\s+");
-                String[] requestPath;
-                output.print("HTTP/1.1 200 OK\r\n\r\n");
-                if (statusLineEntries.length > 1 && (requestPath = statusLineEntries[1].split("/")).length > 2) {
-                    String echoPath = String.join("/", Arrays.copyOfRange(requestPath, 2, requestPath.length));
-                    output.print("Content-Type: text/plain\r\n");
-                    output.print(String.format("Content-Length: %d\r\n", echoPath.length()));
-                    output.print("\r\n");
-                    output.print(String.format("%s\r\n", echoPath));
+            if (statusLine != null) {
+                try (PrintWriter output = new PrintWriter(clientSocket.getOutputStream())) {
+                    String[] statusLineEntries = statusLine.split("\\s+");
+                    String[] requestPath;
+                    if (statusLineEntries.length > 1 && (requestPath = statusLineEntries[1].split("/")).length > 2 && Objects.equals(requestPath[1], "echo")) {
+                        String echoPath = String.join("/", Arrays.copyOfRange(requestPath, 2, requestPath.length));
+                        output.print("HTTP/1.1 200 OK\r\n\r\n");
+                        output.print("Content-Type: text/plain\r\n");
+                        output.print(String.format("Content-Length: %d\r\n", echoPath.length()));
+                        output.print("\r\n");
+                        output.print(String.format("%s\r\n", echoPath));
+                    } else {
+                        output.print("HTTP/1.1 404 Not Found\r\n\r\n");
+                    }
+                    output.flush();
                 }
-                output.flush();
             }
             clientSocket.close();
         } catch (IOException e) {
