@@ -51,10 +51,10 @@ public class ConnectionHandlerRunnable implements Runnable {
                             throw new IOException(String.format("Malformed user agent header: %s", incomingRequest.get(2)));
                     } else if (httpRequest.getPath().startsWith("/files/") && Objects.equals(httpRequest.getMethod(), HttpMethod.GET) && fileDirectory != null) {
                         Path filePath = Paths.get(fileDirectory, httpRequest.getPath().substring(7));
-                        byte[] fileBytes;
+//                        byte[] fileBytes;
                         try {
-                            fileBytes = Files.readAllBytes(filePath);
-                            String fileContent = Arrays.toString(fileBytes);
+//                            fileBytes = Files.readAllBytes(filePath);
+                            String fileContent = Files.readString(filePath);
                             System.out.printf("Found file %s", filePath);
                             String responseBody = "HTTP/1.1 200 OK\r\n" + "Content-Type: application/octet-stream\r\n" + String.format("Content-Length: %d\r\n\r\n", fileContent.length()) + fileContent;
                             output.print(responseBody);
