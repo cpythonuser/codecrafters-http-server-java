@@ -1,8 +1,8 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,10 +10,11 @@ import java.util.Objects;
 
 public class ConnectionHandlerRunnable implements Runnable {
     private final Socket clientSocket;
-    private static final String PATH_SEPARATOR = "/";
+    private final String fileDirectory;
 
-    public ConnectionHandlerRunnable(Socket socket) {
+    public ConnectionHandlerRunnable(Socket socket, String directory) {
         clientSocket = socket;
+        fileDirectory = directory;
     }
 
     /**
@@ -31,27 +32,35 @@ public class ConnectionHandlerRunnable implements Runnable {
                 incomingRequest.add(statusLine);
             }
 
-            if (!incomingRequest.isEmpty() && (statusLine = incomingRequest.get(0)) != null) {
+            if (!incomingRequest.isEmpty()) {
+                HttpRequest httpRequest = new HttpRequest(incomingRequest);
                 try (PrintWriter output = new PrintWriter(clientSocket.getOutputStream())) {
-                    String[] statusLineEntries = statusLine.split("\\s+");
-                    String[] requestPath = statusLineEntries[1].split(PATH_SEPARATOR);
-                    if (requestPath.length == 0) {
+                    if (Objects.equals(httpRequest.getPath(), "/")) {
                         // Return 200 for root path
                         output.print("HTTP/1.1 200 OK\r\n\r\n");
-                    } else if (requestPath.length >= 2 && Objects.equals(requestPath[1], "echo")) {
-                        // Return substring after "echo" in url, e.g. GET /echo/abc/def should return abc/def with
-                        // Content-Length: 7, while GET /echo/ or GET /echo should return an empty string with
-                        // Content-Length: 0
-                        String echoPath = String.join(PATH_SEPARATOR, Arrays.copyOfRange(requestPath, 2, requestPath.length));
+                    } else if (httpRequest.getPath().startsWith("/echo/")) {
+                        String echoPath = httpRequest.getPath().substring(6);
                         String responseBody = "HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n" + String.format("Content-Length: %d\r\n\r\n", echoPath.length()) + echoPath;
                         output.print(responseBody);
-                    } else if (requestPath.length >= 2 && Objects.equals(requestPath[1], "user-agent") && incomingRequest.size() >= 2 && !incomingRequest.get(2).isEmpty()) {
-                        String[] userAgentHeader = incomingRequest.get(2).split(":\\s+");
-                        if (userAgentHeader.length > 1) {
-                            String responseBody = "HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n" + String.format("Content-Length: %d\r\n\r\n", userAgentHeader[1].length()) + userAgentHeader[1];
+                    } else if (httpRequest.getPath().startsWith("/user-agent")) {
+                        String userAgentHeader = httpRequest.getMeta().get(AppConstants.USER_AGENT);
+                        if (userAgentHeader != null) {
+                            String responseBody = "HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n" + String.format("Content-Length: %d\r\n\r\n", userAgentHeader.length()) + userAgentHeader;
                             output.print(responseBody);
                         } else
                             throw new IOException(String.format("Malformed user agent header: %s", incomingRequest.get(2)));
+                    } else if (httpRequest.getPath().startsWith("/files/") && Objects.equals(httpRequest.getMethod(), HttpMethod.GET) && fileDirectory != null) {
+                        Path filePath = Paths.get(fileDirectory, httpRequest.getPath().substring(7));
+                        byte[] fileBytes;
+                        try {
+                            fileBytes = Files.readAllBytes(filePath);
+                            String fileContent = Arrays.toString(fileBytes);
+                            System.out.printf("Found file %s", filePath);
+                            String responseBody = "HTTP/1.1 200 OK\r\n" + "Content-Type: application/octet-stream\r\n" + String.format("Content-Length: %d\r\n\r\n", fileContent.length()) + fileContent;
+                            output.print(responseBody);
+                        } catch (IOException e) {
+                            output.print("HTTP/1.1 404 Not Found\r\n\r\n");
+                        }
                     } else {
                         output.print("HTTP/1.1 404 Not Found\r\n\r\n");
                     }
