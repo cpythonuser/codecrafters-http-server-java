@@ -75,9 +75,9 @@ public class ConnectionHandlerRunnable implements Runnable {
                         try {
                             Files.write(filePath, httpRequest.getBody().getBytes());
                             System.out.printf("Created file %s", filePath);
-                            output.print("HTTP/1.1 201 Created\r\n");
+                            output.print("HTTP/1.1 201 Created\r\n\r\n");
                         } catch (IOException e) {
-                            output.print("HTTP/1.1 500 Internal Server Error\r\n");
+                            output.print("HTTP/1.1 500 Internal Server Error\r\n\r\n");
                         }
                     } else {
                         output.print("HTTP/1.1 404 Not Found\r\n\r\n");
