@@ -57,7 +57,6 @@ public class ConnectionHandlerRunnable implements Runnable {
                                 .headers(Map.of("Content-Type", "text/plain", "Content-Length", String.valueOf(echoPath.length())))
                                 .body(echoPath)
                                 .build();
-//                        String responseBody = "HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n" + String.format("Content-Length: %d\r\n\r\n", echoPath.length()) + echoPath;
                         output.print(httpResponse);
                     } else if (httpRequest.getPath().startsWith("/user-agent")) {
                         String userAgentHeader = httpRequest.getMeta().get(AppConstants.USER_AGENT);
@@ -66,7 +65,6 @@ public class ConnectionHandlerRunnable implements Runnable {
                                     .headers(Map.of("Content-Type", "text/plain", "Content-Length", String.valueOf(userAgentHeader.length())))
                                     .body(userAgentHeader)
                                     .build();
-//                            String responseBody = "HTTP/1.1 200 OK\r\n" + "Content-Type: text/plain\r\n" + String.format("Content-Length: %d\r\n\r\n", userAgentHeader.length()) + userAgentHeader;
                             output.print(httpResponse);
                         } else
                             throw new IOException(String.format("Malformed user agent header: %s", incomingRequest.get(2)));
@@ -81,11 +79,9 @@ public class ConnectionHandlerRunnable implements Runnable {
                                     .headers(Map.of("Content-Type", "application/octet-stream", "Content-Length", String.valueOf(fileContent.length())))
                                     .body(fileContent)
                                     .build();
-//                            String responseBody = "HTTP/1.1 200 OK\r\n" + "Content-Type: application/octet-stream\r\n" + String.format("Content-Length: %d\r\n\r\n", fileContent.length()) + fileContent;
                             output.print(httpResponse);
                         } catch (IOException e) {
                             output.print(new HttpResponse.Builder().protocol("HTTP/1.1").responseCode(HttpResponseCodes.NOT_FOUND).build());
-//                            output.print("HTTP/1.1 404 Not Found\r\n\r\n");
                         }
                     } else if (httpRequest.getPath().startsWith("/files/") && Objects.equals(httpRequest.getMethod(), HttpMethod.POST) && fileDirectory != null) {
                         Path filePath = Paths.get(fileDirectory, httpRequest.getPath().substring(7));
