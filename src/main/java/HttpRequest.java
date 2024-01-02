@@ -8,6 +8,8 @@ public class HttpRequest {
 
     private final Map<String, String> meta = new HashMap<>();
 
+    private String body;
+
     public HttpMethod getMethod() {
         return method;
     }
@@ -18,6 +20,14 @@ public class HttpRequest {
 
     public Map<String, String> getMeta() {
         return meta;
+    }
+
+    public String getBody() {
+        return body;
+    }
+
+    public void setBody(String requestBody) {
+        body = requestBody;
     }
 
     public HttpRequest(List<String> requestLines) {
